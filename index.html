@@ -1,393 +1,136 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<title>🍺 Пивной кликер — расширенный</title>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: system-ui, sans-serif;
-    margin: 0;
-    background: #0f0a06;
-    color: #f5e6d3;
-    min-height: 100vh;
-  }
-  header {
-    background: #1a1108;
-    padding: 1rem 2rem;
-    border-bottom: 2px solid #3d2817;
-    position: sticky; top: 0; z-index: 10;
-  }
-  h1 { margin: 0; font-size: 1.5rem; color: #f0a500; }
-  .stat { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.5rem; font-size: 0.88rem; }
-  .stat b { color: #ffd966; }
-  .stat .crit b { color: #ff8c42; }
-  main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
-  .panel {
-    background: #1a1108;
-    border: 1px solid #3d2817;
-    border-radius: 8px;
-    padding: 1rem;
-  }
-  .panel h2 { margin: 0 0 0.5rem 0; font-size: 1.1rem; color: #f0a500; }
-  .panel h2:not(:first-child) { margin-top: 1.2rem; }
-  button {
-    background: #2a1c10;
-    color: #f5e6d3;
-    border: 1px solid #4a2f1a;
-    border-radius: 6px;
-    padding: 0.6rem 0.8rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  button:hover:not(:disabled) { background: #4a2f1a; }
-  button:disabled { opacity: 0.4; cursor: not-allowed; }
-  button.primary {
-    background: #d97a1a;
-    border-color: #ffa94d;
-    color: #1a0d05;
-    font-weight: bold;
-    font-size: 1.15rem;
-    text-align: center;
-    padding: 1.2rem;
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-  button.primary:hover:not(:disabled) { background: #ffa94d; }
-  button.prestige {
-    background: #ffd966;
-    color: #1a0d05;
-    border-color: #ffeb99;
-    font-weight: bold;
-    width: 100%;
-  }
-  button.prestige:hover:not(:disabled) { background: #ffeb99; }
-  .buy-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-bottom: 0.5rem; }
-  .buy-row button { text-align: center; }
-  small { color: #a08e78; font-size: 0.78rem; }
-  .hint { color: #a08e78; font-size: 0.78rem; margin: 0.3rem 0 0 0; }
-
-  /* Здания */
-  .building-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 0.4rem;
-    margin-bottom: 0.4rem;
-  }
-  .building-buy {
-    text-align: left;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 0.8rem;
-  }
-  .building-buy .b-left { flex: 1; min-width: 0; }
-  .building-buy .b-name { font-weight: bold; display: block; }
-  .building-buy .b-sub { font-size: 0.75rem; color: #a08e78; display: block; margin-top: 2px; }
-  .building-buy .b-cost { text-align: right; font-size: 0.85rem; }
-  .building-buy .b-cost b { color: #ffd966; }
-  .building-mult {
-    min-width: 78px;
-    text-align: center;
-    padding: 0.5rem 0.5rem;
-    font-size: 0.85rem;
-    line-height: 1.2;
-  }
-  .building-mult .mult-name { font-weight: bold; color: #6bffb8; }
-  .building-mult small { display: block; color: #a08e78; }
-
-  /* Улучшения */
-  .upgrade-card {
-    background: #2a1c10;
-    border: 1px solid #4a2f1a;
-    border-radius: 6px;
-    padding: 0.6rem 0.8rem;
-    margin-bottom: 0.4rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .upgrade-card.can-buy { border-color: #ffa94d; background: #2e1e11; }
-  .upgrade-card .u-info { flex: 1; min-width: 0; }
-  .upgrade-card .u-name { font-weight: bold; font-size: 0.9rem; }
-  .upgrade-card .u-desc { font-size: 0.75rem; color: #a08e78; display: block; margin-top: 2px; }
-  .upgrade-card .u-lvl { font-size: 0.75rem; color: #6bffb8; }
-  .upgrade-card .u-buy {
-    min-width: 100px;
-    text-align: center;
-    font-size: 0.85rem;
-  }
-  .upgrade-card .u-buy .price { font-weight: bold; color: #ffd966; display: block; }
-
-  /* Тост */
-  .toast {
-    position: fixed;
-    top: 90px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #d97a1a;
-    color: #1a0d05;
-    padding: 0.7rem 1.5rem;
-    border-radius: 20px;
-    font-weight: bold;
-    z-index: 200;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    animation: toastIn 0.3s;
-    max-width: 90vw;
-  }
-  @keyframes toastIn {
-    from { opacity: 0; transform: translate(-50%, -20px); }
-    to { opacity: 1; transform: translate(-50%, 0); }
-  }
-
-  /* Золотое пиво */
-  .golden-beer {
-    position: fixed;
-    font-size: 3rem;
-    cursor: pointer;
-    z-index: 100;
-    user-select: none;
-    filter: drop-shadow(0 0 20px gold);
-    animation: goldenPulse 0.6s infinite alternate;
-    transition: transform 0.1s;
-  }
-  .golden-beer:hover { transform: scale(1.15); }
-  @keyframes goldenPulse {
-    from { filter: drop-shadow(0 0 10px gold); }
-    to { filter: drop-shadow(0 0 30px orange); }
-  }
-
-  .flash { animation: flash 0.2s; }
-  @keyframes flash { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-
-  .formulas div { font-size: 0.78rem; line-height: 1.5; color: #d9c8b0; margin-bottom: 0.2rem; }
-  .stats div { font-size: 0.82rem; color: #d9c8b0; margin-bottom: 0.15rem; }
-</style>
-</head>
-<body>
-<header>
-  <h1>🍺 Пивной кликер</h1>
-  <div class="stat">
-    <span>Пиво: <b id="s-money">0</b></span>
-    <span>Литров/сек: <b id="s-cps">0</b></span>
-    <span>За забег: <b id="s-run">0</b></span>
-    <span>Всего: <b id="s-all">0</b></span>
-    <span>Престиж: <b id="s-pp">0</b></span>
-    <span>Множитель: <b id="s-mult">×1.00</b></span>
-    <span class="crit">Крит: <b id="s-crit">0%</b></span>
-  </div>
-</header>
-
-<main>
-  <!-- ЛЕВАЯ КОЛОНКА -->
-  <div class="panel">
-    <h2>🍻 Глоток</h2>
-    <button class="primary" id="clickBtn">Глотнуть (+<span id="clickVal">1</span>)</button>
-    <div class="buy-row">
-      <button id="buyClick1">+1 ур — <span id="cc1">10</span></button>
-      <button id="buyClick10">+10 ур — <span id="cc10">0</span></button>
-    </div>
-    <p class="hint">Уровень: <b id="clickLvl">0</b> · ×1.10/ур · milestone ×2 каждые 10 ур. <b>Shift+клик</b> — купить максимум.</p>
-
-    <h2>🏭 Пивоварни</h2>
-    <div id="buildings"></div>
-
-    <h2>⭐ Престиж</h2>
-    <p class="hint">Очков при сбросе: <b id="ppGain">0</b> · порог 1M литров</p>
-    <button class="prestige" id="prestigeBtn">Престиж (+<span id="ppBtn">0</span>)</button>
-    <p class="hint">Сбрасывает: пиво, глоток, пивоварни, улучшения. Остаётся: престиж-очки, статистика.</p>
-  </div>
-
-  <!-- ПРАВАЯ КОЛОНКА -->
-  <div class="panel">
-    <h2>⚙️ Глобальные улучшения</h2>
-    <div id="upgrades"></div>
-
-    <h2>📊 Статистика</h2>
-    <div class="stats">
-      <div>Всего глотков: <b id="statClicks">0</b></div>
-      <div>Критов: <b id="statCrits">0</b></div>
-      <div>Престижей: <b id="statPrestiges">0</b></div>
-      <div>Лучший забег: <b id="statBestRun">0</b></div>
-      <div>Золотых пив: <b id="statGolden">0</b></div>
-      <div>Наиграно: <b id="statTime">0</b></div>
-    </div>
-
-    <h2>💾 Управление</h2>
-    <button id="saveBtn" style="width:100%; margin-bottom:0.4rem;">💾 Сохранить</button>
-    <button id="resetBtn" style="width:100%;">🗑 Сбросить всё</button>
-
-    <h2>📐 Формулы</h2>
-    <div class="formulas">
-      <div><b>Глоток:</b> 1 × 1.10^lvl × 2^floor(lvl/10) × prestige × globalClick × crit × golden</div>
-      <div><b>Пивоварня:</b> base × count × 2^floor(count/25) × bMult × prestige × globalCps × golden</div>
-      <div><b>Цена пивоварни:</b> baseCost × 1.15^count</div>
-      <div><b>Множитель пивоварни:</b> 2^lvl, цена = baseCost × 100 × 5^lvl</div>
-      <div><b>Крит:</b> шанс = 2%/ур (макс 50%), множитель = 2 + 0.5×ур</div>
-      <div><b>Престиж-очки:</b> floor((earned / 1e6) ^ 0.5)</div>
-    </div>
-  </div>
-</main>
-
-<div id="goldenBeer" class="golden-beer" style="display:none;">🍺</div>
-
-<script>
 'use strict';
 
 // ============================================================
-// КОНФИГ
+// ЗАВИСИМОСТИ
+// ============================================================
+const el = (id) => document.getElementById(id);
+
+// ============================================================
+// КОНФИГ — ПИВОВАРНИ
 // ============================================================
 const BUILDINGS = [
-  { id: 'mug',    name: 'Кружка',              baseCost: 15,    costRate: 1.15, baseIncome: 0.1 },
-  { id: 'home',   name: 'Домашняя пивоварня',  baseCost: 100,   costRate: 1.15, baseIncome: 1 },
-  { id: 'bar',    name: 'Пивной бар',          baseCost: 1100,  costRate: 1.15, baseIncome: 8 },
-  { id: 'malt',   name: 'Солодовня',           baseCost: 12000, costRate: 1.15, baseIncome: 47 },
-  { id: 'hops',   name: 'Хмелевая ферма',      baseCost: 130000,costRate: 1.15, baseIncome: 260 },
-  { id: 'plant',  name: 'Пивзавод',            baseCost: 1.4e6, costRate: 1.15, baseIncome: 1400 },
-  { id: 'empire', name: 'Пивная империя',      baseCost: 2e7,   costRate: 1.15, baseIncome: 7800 },
-  { id: 'portal', name: 'Пивной портал',       baseCost: 3.3e8, costRate: 1.15, baseIncome: 44000 },
-  { id: 'vat',    name: 'Варочный чан времени',baseCost: 5.1e9, costRate: 1.15, baseIncome: 260000 },
+  { id: 'mug',      name: 'Кружка',                baseCost: 15,     costRate: 1.15, baseIncome: 0.1 },
+  { id: 'home',     name: 'Домашняя пивоварня',    baseCost: 100,    costRate: 1.15, baseIncome: 1 },
+  { id: 'bar',      name: 'Пивной бар',            baseCost: 1100,   costRate: 1.15, baseIncome: 8 },
+  { id: 'malt',     name: 'Солодовня',             baseCost: 12000,  costRate: 1.15, baseIncome: 47 },
+  { id: 'hops',     name: 'Хмелевая ферма',        baseCost: 130000, costRate: 1.15, baseIncome: 260 },
+  { id: 'plant',    name: 'Пивзавод',              baseCost: 1.4e6,  costRate: 1.15, baseIncome: 1400 },
+  { id: 'empire',   name: 'Пивная империя',        baseCost: 2e7,    costRate: 1.15, baseIncome: 7800 },
+  { id: 'portal',   name: 'Пивной портал',         baseCost: 3.3e8,  costRate: 1.15, baseIncome: 44000 },
+  { id: 'vat',      name: 'Варочный чан времени',  baseCost: 5.1e9,  costRate: 1.15, baseIncome: 260000 },
+  { id: 'distill',  name: 'Волшебный дистиллятор', baseCost: 7.5e10, costRate: 1.15, baseIncome: 1.6e6 },
+  { id: 'brew',     name: 'Космическая пивоварня', baseCost: 1e12,   costRate: 1.15, baseIncome: 1e7 },
+  { id: 'galaxy',   name: 'Галактическая бочка',   baseCost: 1.4e13, costRate: 1.15, baseIncome: 6.5e7 },
+  { id: 'universe', name: 'Вселенский чан',        baseCost: 1.7e14, costRate: 1.15, baseIncome: 4.3e8 },
+  { id: 'multi',    name: 'Мультивселенский бар',  baseCost: 2.1e15, costRate: 1.15, baseIncome: 2.9e9 },
+  { id: 'quantum',  name: 'Квантовая варка',       baseCost: 2.6e16, costRate: 1.15, baseIncome: 2.1e10 },
+  { id: 'singular', name: 'Сингулярность',         baseCost: 3.1e17, costRate: 1.15, baseIncome: 1.5e11 },
+  { id: 'reality',  name: 'Пивная реальность',     baseCost: 7.1e18, costRate: 1.15, baseIncome: 1.1e12 },
+  { id: 'god',      name: 'Пиво богов',            baseCost: 1.2e20, costRate: 1.15, baseIncome: 8.6e12 },
+  { id: 'infinity', name: 'Бесконечный источник',  baseCost: 1.9e21, costRate: 1.15, baseIncome: 6.5e13 },
 ];
 
 const UPGRADES = {
   globalClick: {
     name: '🍺 Крепкое пиво',
     desc: '+25% к силе глотка за уровень',
-    baseCost: 1e3,
-    costRate: 5,
-    max: 50,
+    baseCost: 1e3, costRate: 5, max: 50,
     effect: (lvl) => `×${Math.pow(1.25, lvl).toFixed(2)}`,
   },
   globalCps: {
     name: '🏭 Разлив на потоке',
     desc: '+25% к доходу всех пивоварен',
-    baseCost: 1e4,
-    costRate: 5,
-    max: 50,
+    baseCost: 1e4, costRate: 5, max: 50,
     effect: (lvl) => `×${Math.pow(1.25, lvl).toFixed(2)}`,
   },
   autoClicker: {
     name: '🤖 Пивной робот',
     desc: '+1 автоматический глоток в секунду',
-    baseCost: 1e3,
-    costRate: 3,
-    max: 100,
+    baseCost: 1e3, costRate: 3, max: 100,
     effect: (lvl) => `${lvl}/сек`,
   },
   critChance: {
     name: '🎯 Меткий глоток',
     desc: '+2% шанс критического глотка',
-    baseCost: 1e5,
-    costRate: 3,
-    max: 25,
+    baseCost: 1e5, costRate: 3, max: 25,
     effect: (lvl) => `${(lvl * 2)}%`,
   },
   critMult: {
     name: '💥 Крепкий крит',
     desc: '+0.5× к множителю крита',
-    baseCost: 1e5,
-    costRate: 3,
-    max: 50,
+    baseCost: 1e5, costRate: 3, max: 50,
     effect: (lvl) => `×${(2 + lvl * 0.5).toFixed(1)}`,
   },
   offlineRate: {
     name: '🛢 Бочка в дорогу',
     desc: '+5% дохода пока игра закрыта',
-    baseCost: 1e6,
-    costRate: 10,
-    max: 20,
+    baseCost: 1e6, costRate: 10, max: 20,
     effect: (lvl) => `${lvl * 5}%`,
   },
 };
 
 // ============================================================
+// MILESTONE-ПОРОГИ
+// ============================================================
+function buildThresholds(first, second, count = 30) {
+  const arr = [first, second];
+  let last = second;
+  for (let i = 0; i < count; i++) { last *= 2; arr.push(last); }
+  return arr;
+}
+const CLICK_THRESHOLDS = buildThresholds(10, 25);
+const BUILD_THRESHOLDS = buildThresholds(25, 50);
+
+function milestonesPassed(level, thresholds) {
+  let count = 0;
+  for (const t of thresholds) { if (level >= t) count++; else break; }
+  return count;
+}
+function milestoneMult(level, thresholds) { return Math.pow(2, milestonesPassed(level, thresholds)); }
+function nextMilestone(level, thresholds) {
+  for (const t of thresholds) { if (level < t) return t; }
+  return thresholds[thresholds.length - 1];
+}
+function prevMilestone(level, thresholds) {
+  let prev = 0;
+  for (const t of thresholds) { if (level >= t) prev = t; else break; }
+  return prev;
+}
+
+// ============================================================
 // СОСТОЯНИЕ
 // ============================================================
-const state = {
-  money: 0,
-  runEarned: 0,
-  allTimeEarned: 0,
-  clickLevel: 0,
-  buildingCounts: {},
-  buildingMultLevels: {},
-  upgrades: {
-    globalClick: 0,
-    globalCps: 0,
-    autoClicker: 0,
-    critChance: 0,
-    critMult: 0,
-    offlineRate: 0,
-  },
-  prestigePoints: 0,
-  totalClicks: 0,
-  totalCrits: 0,
-  totalPrestiges: 0,
-  bestRun: 0,
-  playTime: 0,
-  goldenBeersClicked: 0,
-  lastSave: Date.now(),
-  goldenBonusUntil: 0,
-};
-
-for (const b of BUILDINGS) {
-  if (state.buildingCounts[b.id] === undefined) state.buildingCounts[b.id] = 0;
-  if (state.buildingMultLevels[b.id] === undefined) state.buildingMultLevels[b.id] = 0;
+function makeInitialState() {
+  return {
+    money: 0, runEarned: 0, allTimeEarned: 0, clickLevel: 0,
+    buildingCounts: {}, buildingMultLevels: {},
+    upgrades: { globalClick: 0, globalCps: 0, autoClicker: 0, critChance: 0, critMult: 0, offlineRate: 0 },
+    prestigePoints: 0, totalClicks: 0, totalCrits: 0, totalPrestiges: 0,
+    bestRun: 0, playTime: 0, goldenBeersClicked: 0, lastSave: Date.now(), goldenBonusUntil: 0,
+  };
 }
+
+let state = makeInitialState();
+let skipSave = false;
 
 // ============================================================
 // ФОРМУЛЫ
 // ============================================================
-function prestigeMult() {
-  return (1 + 0.02 * state.prestigePoints) * Math.pow(1.005, state.prestigePoints);
-}
-
-function goldenMult() {
-  return Date.now() < state.goldenBonusUntil ? 7 : 1;
-}
-
-function globalClickMult() {
-  return Math.pow(1.25, state.upgrades.globalClick);
-}
-
-function globalCpsMult() {
-  return Math.pow(1.25, state.upgrades.globalCps);
-}
-
-function critChance() {
-  return Math.min(0.5, state.upgrades.critChance * 0.02);
-}
-
-function critMultValue() {
-  return 2 + state.upgrades.critMult * 0.5;
-}
-
-function avgCritMult() {
-  const c = critChance();
-  return (1 - c) + c * critMultValue();
-}
-
-function buildingMult(b) {
-  return Math.pow(2, state.buildingMultLevels[b.id] || 0);
-}
+function prestigeMult() { return (1 + 0.02 * state.prestigePoints) * Math.pow(1.005, state.prestigePoints); }
+function goldenMult() { return Date.now() < state.goldenBonusUntil ? 7 : 1; }
+function globalClickMult() { return Math.pow(1.25, state.upgrades.globalClick); }
+function globalCpsMult()   { return Math.pow(1.25, state.upgrades.globalCps); }
+function critChance()      { return Math.min(0.5, state.upgrades.critChance * 0.02); }
+function critMultValue()   { return 2 + state.upgrades.critMult * 0.5; }
+function avgCritMult() { const c = critChance(); return (1 - c) + c * critMultValue(); }
+function buildingMult(b) { return Math.pow(2, state.buildingMultLevels[b.id] || 0); }
 
 function clickPower() {
   const base = Math.pow(1.10, state.clickLevel);
-  const milestone = Math.pow(2, Math.floor(state.clickLevel / 10));
-  return base * milestone * prestigeMult() * globalClickMult() * avgCritMult() * goldenMult();
+  const m = milestoneMult(state.clickLevel, CLICK_THRESHOLDS);
+  return base * m * prestigeMult() * globalClickMult() * avgCritMult() * goldenMult();
 }
 
-// Клик-цены
 function clickCostAt(level) { return 10 * Math.pow(1.15, level); }
 function clickCostBulk(n) {
   const s = clickCostAt(state.clickLevel);
@@ -400,27 +143,14 @@ function clickMaxBuyable() {
   return Math.floor(Math.log(1 + state.money * (r - 1) / s) / Math.log(r));
 }
 
-// Доход пивоварни
 function buildingIncome(b) {
   const count = state.buildingCounts[b.id];
   if (count === 0) return 0;
-  const milestone = Math.pow(2, Math.floor(count / 25));
-  return b.baseIncome * count * milestone
-    * buildingMult(b)
-    * prestigeMult()
-    * globalCpsMult()
-    * goldenMult();
+  const m = milestoneMult(count, BUILD_THRESHOLDS);
+  return b.baseIncome * count * m * buildingMult(b) * prestigeMult() * globalCpsMult() * goldenMult();
 }
-
-function totalCPS() {
-  let sum = 0;
-  for (const b of BUILDINGS) sum += buildingIncome(b);
-  return sum;
-}
-
-function buildingCostAt(b, count) {
-  return b.baseCost * Math.pow(b.costRate, count);
-}
+function totalCPS() { let sum = 0; for (const b of BUILDINGS) sum += buildingIncome(b); return sum; }
+function buildingCostAt(b, count) { return b.baseCost * Math.pow(b.costRate, count); }
 function buildingCostBulk(b, n) {
   const count = state.buildingCounts[b.id];
   const r = b.costRate;
@@ -433,23 +163,12 @@ function buildingMaxBuyable(b) {
   const s = b.baseCost * Math.pow(r, count);
   return Math.floor(Math.log(1 + state.money * (r - 1) / s) / Math.log(r));
 }
-
-// Множитель пивоварни
 function buildingMultCost(b) {
   const lvl = state.buildingMultLevels[b.id] || 0;
   return b.baseCost * 100 * Math.pow(5, lvl);
 }
-
-// Улучшения
-function upgradeCost(key) {
-  const u = UPGRADES[key];
-  return u.baseCost * Math.pow(u.costRate, state.upgrades[key]);
-}
-function upgradeMaxed(key) {
-  return state.upgrades[key] >= UPGRADES[key].max;
-}
-
-// Престиж
+function upgradeCost(key) { return UPGRADES[key].baseCost * Math.pow(UPGRADES[key].costRate, state.upgrades[key]); }
+function upgradeMaxed(key) { return state.upgrades[key] >= UPGRADES[key].max; }
 function prestigeGain() {
   if (state.runEarned < 1e6) return 0;
   return Math.floor(Math.pow(state.runEarned / 1e6, 0.5));
@@ -462,12 +181,11 @@ function fmt(n) {
   if (!isFinite(n)) return '∞';
   if (n < 0) return '-' + fmt(-n);
   if (n < 1000) return n.toFixed(n < 10 && n % 1 !== 0 ? 2 : 0);
-  const units = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd'];
+  const units = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd', 'Td', 'Qd', 'Qq', 'Sd', 'St', 'Od', 'Nd', 'Vg'];
   let i = 0;
   while (n >= 1000 && i < units.length - 1) { n /= 1000; i++; }
   return n.toFixed(2) + units[i];
 }
-
 function fmtTime(sec) {
   if (sec < 60) return Math.floor(sec) + 'с';
   if (sec < 3600) return Math.floor(sec / 60) + 'м';
@@ -484,15 +202,89 @@ function addMoney(amount) {
   state.allTimeEarned += amount;
 }
 
-function doClick(isAuto = false) {
-  const gain = clickPower() / avgCritMult(); // базовая (без крита)
+function doClick(isAuto = false, x = null, y = null) {
+  const gain = clickPower() / avgCritMult();
   const isCrit = !isAuto && Math.random() < critChance();
   const finalGain = isCrit ? gain * critMultValue() : gain;
   addMoney(finalGain);
   state.totalClicks++;
   if (isCrit) state.totalCrits++;
+  if (!isAuto && x !== null) {
+    spawnGoldenDrops(x, y, isCrit ? 14 : 7);
+    spawnSparks(x, y, isCrit ? 10 : 5);
+    spawnClickFlash(x, y);
+    spawnFloatingGain(x, y, finalGain, isCrit);
+    flashBarrel();
+  }
   if (!isAuto) updateUI();
   return isCrit;
+}
+
+function spawnGoldenDrops(x, y, count) {
+  for (let i = 0; i < count; i++) {
+    const drop = document.createElement('div');
+    drop.className = 'golden-drop';
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.1;
+    const dist = 40 + Math.random() * 90;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist;
+    drop.style.left = x + 'px';
+    drop.style.top = y + 'px';
+    drop.style.setProperty('--tx', tx + 'px');
+    drop.style.setProperty('--ty', ty + 'px');
+    drop.style.animationDelay = (Math.random() * 0.08) + 's';
+    drop.style.width = (7 + Math.random() * 6) + 'px';
+    drop.style.height = (9 + Math.random() * 7) + 'px';
+    document.body.appendChild(drop);
+    setTimeout(() => drop.remove(), 1300);
+  }
+}
+
+function spawnSparks(x, y, count) {
+  for (let i = 0; i < count; i++) {
+    const spark = document.createElement('div');
+    spark.className = 'spark';
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 30 + Math.random() * 70;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist;
+    spark.style.left = x + 'px';
+    spark.style.top = y + 'px';
+    spark.style.setProperty('--tx', tx + 'px');
+    spark.style.setProperty('--ty', ty + 'px');
+    const sparkColors = ['#ffe08a', '#ff57c8', '#74f6ff', '#bf8cff'];
+    spark.style.setProperty('--spark-color', sparkColors[Math.floor(Math.random() * sparkColors.length)]);
+    spark.style.animationDelay = (Math.random() * 0.1) + 's';
+    document.body.appendChild(spark);
+    setTimeout(() => spark.remove(), 900);
+  }
+}
+
+function spawnClickFlash(x, y) {
+  const flash = document.createElement('div');
+  flash.className = 'click-flash';
+  flash.style.left = x + 'px';
+  flash.style.top = y + 'px';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 450);
+}
+
+function spawnFloatingGain(x, y, amount, isCrit) {
+  const label = document.createElement('div');
+  label.className = 'float-gain' + (isCrit ? ' critical' : '');
+  label.textContent = (isCrit ? 'КРИТ! ' : '+') + fmt(amount) + ' глотков';
+  label.style.left = (x + (Math.random() - .5) * 24) + 'px';
+  label.style.top = (y - 18) + 'px';
+  document.body.appendChild(label);
+  setTimeout(() => label.remove(), 1050);
+}
+
+function flashBarrel() {
+  const barrel = document.getElementById('clickBtn');
+  if (!barrel) return;
+  barrel.classList.remove('flash');
+  void barrel.offsetWidth;
+  barrel.classList.add('flash');
 }
 
 function buyClickLevels(n) {
@@ -502,7 +294,6 @@ function buyClickLevels(n) {
   state.clickLevel += n;
   updateUI();
 }
-
 function buyBuilding(b, n) {
   const cost = buildingCostBulk(b, n);
   if (state.money < cost) return;
@@ -510,7 +301,6 @@ function buyBuilding(b, n) {
   state.buildingCounts[b.id] += n;
   updateUI();
 }
-
 function buyBuildingMult(b) {
   const cost = buildingMultCost(b);
   if (state.money < cost) return;
@@ -518,7 +308,6 @@ function buyBuildingMult(b) {
   state.buildingMultLevels[b.id] = (state.buildingMultLevels[b.id] || 0) + 1;
   updateUI();
 }
-
 function buyUpgrade(key) {
   if (upgradeMaxed(key)) return;
   const cost = upgradeCost(key);
@@ -527,16 +316,13 @@ function buyUpgrade(key) {
   state.upgrades[key]++;
   updateUI();
 }
-
 function doPrestige() {
   const gain = prestigeGain();
   if (gain <= 0) return;
   if (!confirm(`Сбросить прогресс и получить ${gain} престиж-очков?`)) return;
-
   state.bestRun = Math.max(state.bestRun, state.runEarned);
   state.prestigePoints += gain;
   state.totalPrestiges++;
-
   state.money = 0;
   state.runEarned = 0;
   state.clickLevel = 0;
@@ -545,15 +331,12 @@ function doPrestige() {
     state.buildingMultLevels[b.id] = 0;
   }
   for (const k of Object.keys(state.upgrades)) state.upgrades[k] = 0;
-
   updateUI();
 }
 
 // ============================================================
 // UI
 // ============================================================
-const el = (id) => document.getElementById(id);
-
 function buildBuildingsUI() {
   const container = el('buildings');
   container.innerHTML = '';
@@ -613,7 +396,6 @@ function buildUpgradesUI() {
 }
 
 function updateUI() {
-  // Шапка
   el('s-money').textContent = fmt(state.money);
   el('s-cps').textContent = fmt(totalCPS());
   el('s-run').textContent = fmt(state.runEarned);
@@ -622,9 +404,21 @@ function updateUI() {
   el('s-mult').textContent = '×' + prestigeMult().toFixed(2);
   el('s-crit').textContent = `${(critChance() * 100).toFixed(0)}% ×${critMultValue().toFixed(1)}`;
 
-  // Клик
-  el('clickVal').textContent = fmt(clickPower());
-  el('clickLvl').textContent = state.clickLevel;
+  const tapGain = clickPower() / avgCritMult();
+  el('clickVal').textContent = fmt(tapGain);
+  el('clickCritVal').textContent = fmt(tapGain * critMultValue());
+  el('clickCritChance').textContent = `шанс ${Math.round(critChance() * 100)}% · ×${critMultValue().toFixed(1)}`;
+  el('clickLvl').textContent = state.clickLevel + 1;
+
+  const mCount = milestonesPassed(state.clickLevel, CLICK_THRESHOLDS);
+  const mMult = Math.pow(2, mCount);
+  const next = nextMilestone(state.clickLevel, CLICK_THRESHOLDS);
+  const prev = prevMilestone(state.clickLevel, CLICK_THRESHOLDS);
+  const inRange = state.clickLevel - prev;
+  const rangeSize = next - prev;
+  const progress = rangeSize > 0 ? (inRange / rangeSize) * 100 : 0;
+  el('msText').textContent = `milestone ×${mMult} · след. на ${next}`;
+  el('msBar').style.width = Math.min(100, progress) + '%';
 
   const c1 = clickCostBulk(1);
   const c10 = clickCostBulk(10);
@@ -633,7 +427,6 @@ function updateUI() {
   el('buyClick1').disabled = state.money < c1;
   el('buyClick10').disabled = state.money < c10;
 
-  // Пивоварни
   for (const b of BUILDINGS) {
     const buyBtn = document.querySelector(`.building-buy[data-bid="${b.id}"]`);
     if (!buyBtn) continue;
@@ -641,11 +434,12 @@ function updateUI() {
     const nextCost = buildingCostAt(b, count);
     const maxBuy = buildingMaxBuyable(b);
     const income = buildingIncome(b);
+    const bm = milestonesPassed(count, BUILD_THRESHOLDS);
 
     buyBtn.querySelector('.b-name').textContent = b.name;
     let sub = `${count} шт. · ${fmt(income)}/сек`;
     if (count > 0) sub += ` · каждая: ${fmt(income / count)}/сек`;
-    if (count >= 25) sub += ` · milestone ×${Math.pow(2, Math.floor(count / 25))}`;
+    if (bm > 0) sub += ` · milestone ×${Math.pow(2, bm)}`;
     if (maxBuy > 0) sub += ` · Shift: +${maxBuy}`;
     buyBtn.querySelector('.b-sub').textContent = sub;
     buyBtn.querySelector('.b-cost').innerHTML = `Цена: <b>${fmt(nextCost)}</b>`;
@@ -660,7 +454,6 @@ function updateUI() {
     multBtn.disabled = state.money < mcost;
   }
 
-  // Улучшения
   for (const key of Object.keys(UPGRADES)) {
     const card = document.querySelector(`.upgrade-card[data-up="${key}"]`);
     if (!card) continue;
@@ -680,13 +473,11 @@ function updateUI() {
     buyBtn.querySelector('small').textContent = maxed ? 'максимум' : 'купить';
   }
 
-  // Престиж
   const gain = prestigeGain();
   el('ppGain').textContent = gain;
   el('ppBtn').textContent = gain;
   el('prestigeBtn').disabled = gain <= 0;
 
-  // Статистика
   el('statClicks').textContent = fmt(state.totalClicks);
   el('statCrits').textContent = fmt(state.totalCrits);
   el('statPrestiges').textContent = state.totalPrestiges;
@@ -707,43 +498,60 @@ function toast(msg, duration = 2500) {
 }
 
 // ============================================================
+// AMBIENT SPARKLES
+// ============================================================
+function startAmbientSparkles() {
+  const container = document.getElementById('clickBtn');
+  if (!container) return;
+  setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    const sparkle = document.createElement('div');
+    sparkle.className = 'ambient-sparkle';
+    const rect = container.getBoundingClientRect();
+    sparkle.style.left = (rect.left + 30 + Math.random() * (rect.width - 60)) + 'px';
+    sparkle.style.top = (rect.top + rect.height * 0.6 + Math.random() * 40) + 'px';
+    sparkle.style.setProperty('--dur', (2.5 + Math.random() * 1.5) + 's');
+    sparkle.style.setProperty('--rise', (80 + Math.random() * 60) + 'px');
+    sparkle.style.setProperty('--delay', '0s');
+    document.body.appendChild(sparkle);
+    setTimeout(() => sparkle.remove(), 4500);
+  }, 350);
+}
+
+// ============================================================
 // ЗОЛОТОЕ ПИВО
 // ============================================================
 function spawnGoldenBeer() {
   const existing = document.getElementById('goldenBeer');
   if (existing && existing.style.display !== 'none') return;
-
   const beer = document.getElementById('goldenBeer');
   beer.style.display = 'block';
   beer.style.left = (10 + Math.random() * 80) + 'vw';
   beer.style.top = (15 + Math.random() * 70) + 'vh';
   beer.textContent = '🍺';
 
-  const timeout = setTimeout(() => {
-    beer.style.display = 'none';
-  }, 12000);
-
+  const timeout = setTimeout(() => { beer.style.display = 'none'; }, 12000);
   beer.onclick = () => {
     clearTimeout(timeout);
     beer.style.display = 'none';
     state.goldenBeersClicked++;
+    const rect = beer.getBoundingClientRect();
+    spawnGoldenDrops(rect.left + rect.width / 2, rect.top + rect.height / 2, 20);
+    spawnSparks(rect.left + rect.width / 2, rect.top + rect.height / 2, 15);
 
     if (Math.random() < 0.5) {
-      // Бонус деньгами = 15 минут CPS или 100 кликов, что больше
       const bonus = Math.max(totalCPS() * 900, clickPower() * 100, 100);
       addMoney(bonus);
       toast(`🍺 Золотое пиво! +${fmt(bonus)} пива`);
     } else {
-      // Временный ×7 множитель на 30 секунд
       state.goldenBonusUntil = Date.now() + 30000;
       toast('🍺 Золотое пиво! ×7 на 30 секунд!');
     }
     updateUI();
   };
 }
-
 function scheduleGoldenBeer() {
-  const delay = 60000 + Math.random() * 180000; // 1-4 минуты
+  const delay = 60000 + Math.random() * 180000;
   setTimeout(() => {
     if (document.visibilityState === 'visible') spawnGoldenBeer();
     scheduleGoldenBeer();
@@ -753,20 +561,17 @@ function scheduleGoldenBeer() {
 // ============================================================
 // СОХРАНЕНИЕ
 // ============================================================
-const SAVE_KEY = 'beer_clicker_save_v2';
-
+const SAVE_KEY = 'beer_clicker_save_v3';
 function save() {
   state.lastSave = Date.now();
   localStorage.setItem(SAVE_KEY, JSON.stringify(state));
 }
-
 function load() {
   const raw = localStorage.getItem(SAVE_KEY);
   if (!raw) return null;
   try {
     const data = JSON.parse(raw);
     const elapsed = (Date.now() - (data.lastSave || Date.now())) / 1000;
-
     for (const key of Object.keys(state)) {
       if (data[key] === undefined) continue;
       if (key === 'upgrades' || key === 'buildingCounts' || key === 'buildingMultLevels') {
@@ -790,24 +595,17 @@ function load() {
 // ИГРОВОЙ ЦИКЛ
 // ============================================================
 let lastTick = performance.now();
-
 function gameLoop(now) {
   const dt = Math.min((now - lastTick) / 1000, 1);
   lastTick = now;
-
-  // Пассивный доход от пивоварен
   addMoney(totalCPS() * dt);
-
-  // Автокликер
   const autoLvl = state.upgrades.autoClicker;
   if (autoLvl > 0) {
-    // Автоклик не критует — берём базовую силу клика (без крита)
     const baseClick = clickPower() / avgCritMult();
     const autoClicks = autoLvl * dt;
     addMoney(baseClick * autoClicks);
     state.totalClicks += autoClicks;
   }
-
   state.playTime += dt;
   updateUI();
   requestAnimationFrame(gameLoop);
@@ -817,7 +615,22 @@ function gameLoop(now) {
 // СОБЫТИЯ
 // ============================================================
 function bindEvents() {
-  el('clickBtn').addEventListener('click', () => doClick(false));
+  const barrel = el('clickBtn');
+
+  barrel.addEventListener('click', (e) => {
+    if (e.shiftKey) return;
+    const rect = barrel.getBoundingClientRect();
+    const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 50;
+    const y = rect.top + rect.height / 3 + (Math.random() - 0.5) * 40;
+    doClick(false, x, y);
+  });
+
+  barrel.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    doClick(false, touch.clientX, touch.clientY);
+  }, { passive: false });
+
   el('buyClick1').addEventListener('click', (e) => {
     buyClickLevels(e.shiftKey ? Math.max(1, clickMaxBuyable()) : 1);
   });
@@ -826,34 +639,49 @@ function bindEvents() {
   el('saveBtn').addEventListener('click', () => { save(); toast('💾 Сохранено'); });
   el('resetBtn').addEventListener('click', () => {
     if (!confirm('Удалить весь прогресс безвозвратно?')) return;
-    localStorage.removeItem(SAVE_KEY);
+    skipSave = true;
+    ['beer_clicker_save_v1', 'beer_clicker_save_v2', 'beer_clicker_save_v3'].forEach(k => {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+    state = makeInitialState();
+    for (const b of BUILDINGS) {
+      state.buildingCounts[b.id] = 0;
+      state.buildingMultLevels[b.id] = 0;
+    }
     location.reload();
   });
 }
 
 // ============================================================
-// СТАРТ
+// ИНИЦИАЛИЗАЦИЯ
 // ============================================================
-const offlineSec = load();
-buildBuildingsUI();
-buildUpgradesUI();
-bindEvents();
-updateUI();
-
-if (offlineSec && offlineSec > 60 && state.upgrades.offlineRate > 0) {
-  const rate = state.upgrades.offlineRate * 0.05;
-  const cappedSec = Math.min(offlineSec, 8 * 3600); // максимум 8 часов
-  const earned = totalCPS() * cappedSec * rate;
-  if (earned > 0) {
-    addMoney(earned);
-    setTimeout(() => toast(`🛢 Пока вас не было (${fmtTime(offlineSec)}), наварено +${fmt(earned)} пива`), 300);
+function init() {
+  for (const b of BUILDINGS) {
+    state.buildingCounts[b.id] = 0;
+    state.buildingMultLevels[b.id] = 0;
   }
+
+  const offlineSec = load();
+  buildBuildingsUI();
+  buildUpgradesUI();
+  bindEvents();
+  updateUI();
+
+  if (offlineSec && offlineSec > 60 && state.upgrades.offlineRate > 0) {
+    const rate = state.upgrades.offlineRate * 0.05;
+    const cappedSec = Math.min(offlineSec, 8 * 3600);
+    const earned = totalCPS() * cappedSec * rate;
+    if (earned > 0) {
+      addMoney(earned);
+      setTimeout(() => toast(`🛢 Пока вас не было (${fmtTime(offlineSec)}), наварено +${fmt(earned)} пива`), 300);
+    }
+  }
+
+  requestAnimationFrame(gameLoop);
+  scheduleGoldenBeer();
+  startAmbientSparkles();
+  setInterval(save, 3000);
+  window.addEventListener('beforeunload', () => { if (!skipSave) save(); });
 }
 
-requestAnimationFrame(gameLoop);
-scheduleGoldenBeer();
-setInterval(save, 3000);
-window.addEventListener('beforeunload', save);
-</script>
-</body>
-</html>
+init();
